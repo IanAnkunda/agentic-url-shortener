@@ -1,6 +1,7 @@
 {
   "name": "Agentic URL Shortener",
-  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+
   "features": {
     "ghcr.io/devcontainers/features/java:1": {
       "version": "21",
@@ -11,21 +12,10 @@
     },
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
       "version": "latest",
-      "moby": true,
-      "dockerDashComposeVersion": "v2"
+      "moby": false
     }
   },
-  "forwardPorts": [8080, 5432],
-  "portsAttributes": {
-    "8080": {
-      "label": "URL Shortener API",
-      "onAutoForward": "notify"
-    },
-    "5432": {
-      "label": "PostgreSQL",
-      "onAutoForward": "silent"
-    }
-  },
+
   "customizations": {
     "vscode": {
       "extensions": [
@@ -36,6 +26,9 @@
       ]
     }
   },
-  "postCreateCommand": "python3 -m pip install -r orchestrator/requirements.txt",
-  "remoteUser": "vscode"
+
+  "forwardPorts": [
+    8080,
+    5432
+  ]
 }
