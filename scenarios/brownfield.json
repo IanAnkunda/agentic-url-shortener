@@ -1,0 +1,13 @@
+{
+  "name": "brownfield-expiring-links",
+  "requirement": "Enhance the existing shortener so clients may optionally set a TTL without breaking existing create/redirect behavior.",
+  "assumptions": [
+    "Existing links never expire unless an expiry already exists",
+    "Expired links return HTTP 410 Gone",
+    "Database migration must remain backward compatible"
+  ],
+  "change_event": {
+    "description": "Product changes the minimum TTL from 5 minutes to 60 seconds after architecture review.",
+    "invalidate": ["requirements", "architecture"]
+  }
+}

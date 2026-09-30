@@ -1,0 +1,9 @@
+.agent_runs/
+.idea/
+.vscode/
+*.iml
+backend/target/
+__pycache__/
+*.pyc
+.env
+.DS_Store

@@ -1,0 +1,2 @@
+# Baseline orchestrator uses only the Python standard library.
+# Add an LLM provider SDK later behind the agent-handler interface if desired.

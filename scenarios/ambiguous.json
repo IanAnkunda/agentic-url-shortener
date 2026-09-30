@@ -1,0 +1,9 @@
+{
+  "name": "ambiguous-make-links-safer",
+  "requirement": "Make shortened links safer for customers without making the service difficult to use.",
+  "assumptions": [
+    "Interpret 'safer' for the prototype as HTTPS-only destinations, validation, auditability, and abuse-risk documentation",
+    "Do not silently add domain blocking without a policy owner approving the policy",
+    "Security controls that materially change user behavior require a human design approval"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "greenfield-core-url-shortener",
+  "requirement": "Build a new URL shortener with create, redirect, delete, expiration, custom aliases, and basic click analytics.",
+  "assumptions": [
+    "Public API is versioned under /api/v1",
+    "Only HTTPS destinations are accepted",
+    "Aggregate click counts are sufficient for the prototype"
+  ]
+}
