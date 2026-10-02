@@ -22,6 +22,13 @@ public class UrlController {
         this.service = service;
     }
 
+    /*
+     * Security Boundary: 
+     * @Valid annotation triggers the JSR-380 constraints defined in 
+     * CreateShortUrlRequest (e.g., HTTPS enforcement, length limits, regex 
+     * patterns). Rejecting malformed payloads at the controller layer prevents 
+     * downstream processing waste and mitigates injection risks.
+     */
     @PostMapping("/api/v1/urls")
     public ResponseEntity<CreateShortUrlResponse> create(@Valid @RequestBody CreateShortUrlRequest request) {
         ShortUrl created = service.create(request);

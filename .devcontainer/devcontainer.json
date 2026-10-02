@@ -10,10 +10,7 @@
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.12"
     },
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {
-      "version": "latest",
-      "moby": false
-    }
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
 
   "customizations": {
@@ -27,8 +24,5 @@
     }
   },
 
-  "forwardPorts": [
-    8080,
-    5432
-  ]
+  "forwardPorts": [8080]
 }

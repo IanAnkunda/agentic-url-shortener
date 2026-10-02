@@ -15,6 +15,12 @@ public interface ShortUrlRepository extends JpaRepository<ShortUrl, UUID> {
     Optional<ShortUrl> findByCode(String code);
     boolean existsByCode(String code);
 
+    /*
+     * Concurrency Strategy: 
+     * Executing an atomic UPDATE statement directly in the database avoids the 
+     * classic read-modify-write race condition that occurs when fetching the entity 
+     * into application memory under concurrent redirect traffic.
+     */
     @Modifying
     @Transactional
     @Query("update ShortUrl s set s.clickCount = s.clickCount + 1, s.lastAccessedAt = :at where s.id = :id")

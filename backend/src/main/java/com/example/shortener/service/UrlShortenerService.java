@@ -4,6 +4,7 @@ import com.example.shortener.dto.AnalyticsResponse;
 import com.example.shortener.dto.CreateShortUrlRequest;
 import com.example.shortener.model.ShortUrl;
 import com.example.shortener.repo.ShortUrlRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,22 +17,33 @@ import java.util.UUID;
 
 @Service
 public class UrlShortenerService {
+    /*
+     * Design Decision: Removed hardcoded generation parameters. Externalizing 
+     * code-length and max-retries allows environment-specific tuning (e.g., 
+     * increasing keyspace size under high load) without requiring a recompilation 
+     * or deployment cycle.
+     */
     private static final char[] ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".toCharArray();
-    private static final int GENERATED_CODE_LENGTH = 7;
-    private static final int MAX_COLLISION_RETRIES = 5;
 
     private final ShortUrlRepository repository;
     private final SecureRandom random;
     private final Clock clock;
+    private final int codeLength;
+    private final int maxRetries;
 
-    public UrlShortenerService(ShortUrlRepository repository) {
-        this(repository, new SecureRandom(), Clock.systemUTC());
+    public UrlShortenerService(
+            ShortUrlRepository repository,
+            @Value("${shortener.code-length:7}") int codeLength,
+            @Value("${shortener.max-retries:5}") int maxRetries) {
+        this(repository, new SecureRandom(), Clock.systemUTC(), codeLength, maxRetries);
     }
 
-    UrlShortenerService(ShortUrlRepository repository, SecureRandom random, Clock clock) {
+    UrlShortenerService(ShortUrlRepository repository, SecureRandom random, Clock clock, int codeLength, int maxRetries) {
         this.repository = repository;
         this.random = random;
         this.clock = clock;
+        this.codeLength = codeLength;
+        this.maxRetries = maxRetries;
     }
 
     @Transactional
@@ -84,7 +96,12 @@ public class UrlShortenerService {
     }
 
     private String nextUniqueCode() {
-        for (int attempt = 0; attempt < MAX_COLLISION_RETRIES; attempt++) {
+        /*
+         * Resilience Control: A bounded retry loop prevents infinite CPU cycles 
+         * in the event of an exhausted keyspace or a severe collision spike. 
+         * Failing safely with a 503 alerts upstream monitors to scale the keyspace.
+         */
+        for (int attempt = 0; attempt < maxRetries; attempt++) {
             String code = randomCode();
             if (!repository.existsByCode(code)) {
                 return code;
@@ -95,8 +112,8 @@ public class UrlShortenerService {
     }
 
     private String randomCode() {
-        StringBuilder builder = new StringBuilder(GENERATED_CODE_LENGTH);
-        for (int i = 0; i < GENERATED_CODE_LENGTH; i++) {
+        StringBuilder builder = new StringBuilder(codeLength);
+        for (int i = 0; i < codeLength; i++) {
             builder.append(ALPHABET[random.nextInt(ALPHABET.length)]);
         }
         return builder.toString();

@@ -4,7 +4,6 @@ import com.example.shortener.dto.CreateShortUrlRequest;
 import com.example.shortener.model.ShortUrl;
 import com.example.shortener.repo.ShortUrlRepository;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.SecureRandom;
@@ -16,12 +15,15 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 class UrlShortenerServiceTest {
     private final ShortUrlRepository repository = mock(ShortUrlRepository.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-09-30T15:00:00Z"), ZoneOffset.UTC);
-    private final UrlShortenerService service = new UrlShortenerService(repository, new SecureRandom(), clock);
+    
+    // Updated to match the new constructor requiring codeLength and maxRetries
+    private final UrlShortenerService service = new UrlShortenerService(repository, new SecureRandom(), clock, 7, 5);
 
     @Test
     void createsCustomAlias() {
@@ -49,5 +51,23 @@ class UrlShortenerServiceTest {
         when(repository.findByCode("old1")).thenReturn(Optional.of(expired));
         assertThrows(ResponseStatusException.class, () -> service.resolve("old1"));
         verify(repository, never()).incrementClick(any(), any());
+    }
+
+    @Test
+    void exhaustsBoundedRetriesAndFailsSafely() {
+        /*
+         * Test Objective: Validate the safety guardrails. If the system experiences 
+         * continuous collisions, it must abort and return an HTTP 503 rather than 
+         * looping infinitely and consuming thread resources.
+         */
+        UrlShortenerService strictService = new UrlShortenerService(repository, new SecureRandom(), clock, 7, 3);
+        when(repository.existsByCode(anyString())).thenReturn(true);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> strictService.create(new CreateShortUrlRequest("https://example.com", null, null)));
+
+        assertEquals(503, exception.getStatusCode().value());
+        verify(repository, times(3)).existsByCode(anyString());
+        verify(repository, never()).save(any(ShortUrl.class));
     }
 }

@@ -16,3 +16,6 @@ management:
     web:
       exposure:
         include: health,info
+shortener:
+  code-length: ${SHORTENER_CODE_LENGTH:7}
+  max-retries: ${SHORTENER_MAX_RETRIES:5}

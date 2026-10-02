@@ -39,11 +39,12 @@ class SafeStop(RuntimeError):
 
 
 class AgenticEngine:
-    """Small, explicit SDLC dependency-graph orchestrator.
+    """Stateful SDLC dependency-graph orchestrator.
 
-    It demonstrates stateful execution, entry/exit gates, parallel-ready branches,
-    bounded retries, human approvals, fallback behavior, audit events, rollback
-    accounting, and dynamic re-planning when a change event is supplied.
+    Design Decision: Prioritized deterministic state transitions and explicit governance 
+    over autonomous LLM looping. By keeping the orchestration layer separate from the 
+    LLM generation logic, preventing runaway execution costs, enforce human approval 
+    boundaries and guarantee audit-grade traceability
     """
 
     GRAPH: Dict[str, Set[str]] = {
@@ -90,8 +91,10 @@ class AgenticEngine:
             if not ready:
                 raise SafeStop("No runnable nodes remain; dependency graph is blocked.")
 
-            # Parallel-ready branches are surfaced together. This reference implementation
-            # executes them deterministically one by one so audit output is easy to review.
+            # Trade-off: While the graph resolves independent nodes e.g., security_review, 
+            # implementation, test_plan as parallel-ready, they are executed synchronously 
+            # in this prototype. This guarantees deterministic audit logs for review and 
+            # avoids thread-safety complexity in local SQLite/RunState storage.
             self._event(state, "ready_set", nodes=ready)
             for node in ready:
                 self._run_node(state, node)
@@ -125,7 +128,11 @@ class AgenticEngine:
                 self._event(state, "node_completed", node=node, attempt=attempt, duration_ms=duration_ms)
                 self._persist(state)
                 return
-            except Exception as exc:  # bounded retry/fallback boundary
+            except Exception as exc:  
+                # Fault Isolation Boundary: Catching broad exceptions here ensures that 
+                # a hallucination or parsing error from downstream LLM agent cannot 
+                # crash the core orchestrator. The failure is accounted for, the retry 
+                # budget is decremented and system gracefully loops.
                 last_error = str(exc)
                 if attempt <= self.max_retries:
                     state.retries += 1
@@ -172,8 +179,15 @@ class AgenticEngine:
             for event in state.events:
                 fh.write(json.dumps(event) + "\n")
 
-    # Agent implementations intentionally return concise, reviewable artifacts.
-    # In a production variant these handlers can call an LLM/provider adapter.
+    # -------------------------------------------------------------------------
+    # Agent Handlers
+    # 
+    # Architecture Note: LLM provider integration is deliberately stubbed here. 
+    # This ensures the prototype runs deterministically to prove the orchestration, 
+    # governance and dynamic replanning logic. In a production state, these boundaries 
+    # take the RunState and inject LangChain/OpenAI clients but the I/O contract 
+    # remains strictly governed by the engine.
+    # -------------------------------------------------------------------------
     def requirements_agent(self, state: RunState) -> dict:
         return {
             "normalized_problem": state.requirement,
